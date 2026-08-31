@@ -1,0 +1,40 @@
+{
+  "name": "pi-video-cua",
+  "version": "0.1.0",
+  "description": "Computer-use agent extension for Pi.dev controlling Windows 11 desktop applications and DaVinci Resolve",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "bin": {
+    "pi-video-cua-helper": "./bin/pi-video-cua-helper.exe"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build:helper": "cargo build --release --manifest-path helper/Cargo.toml && powershell -Command \"New-Item -ItemType Directory -Force -Path bin; Copy-Item helper/target/release/pi-video-cua-helper.exe -Destination bin/ -Force\"",
+    "build:ts": "tsc && tsc -p tsconfig.test.json",
+    "build": "npm run build:helper && npm run build:ts",
+    "test": "npm run build && node --input-type=module -e \"import('./dist/test/smoke-test.js');\"",
+    "test:verify": "node --input-type=module -e \"import('./dist/test/verify-fixes.js');\"",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "pi",
+    "pi-extension",
+    "computer-use",
+    "cua",
+    "davinci-resolve",
+    "automation",
+    "screen-capture",
+    "video-editing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}
