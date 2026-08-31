@@ -105,7 +105,13 @@ await scroll({
 ### Installing in Pi
 
 ```bash
-pi install pi-video-cua
+pi install github:gamercanned-arch/pi-video-cua
+```
+
+or via npm:
+
+```bash
+npm install github:gamercanned-arch/pi-video-cua
 ```
 
 ### Building from Source
