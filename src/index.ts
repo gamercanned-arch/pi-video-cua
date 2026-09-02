@@ -8,9 +8,10 @@ import { screenRecordTool } from "./tools/screen-record.js";
 import { dragTool } from "./tools/drag.js";
 import { scrollTool } from "./tools/scroll.js";
 import { HelperClient, HelperError } from "./helper-client.js";
+import { CUA_SYSTEM_PROMPT } from "./prompt.js";
 
 export * from "./types.js";
-export { HelperClient, HelperError };
+export { HelperClient, HelperError, CUA_SYSTEM_PROMPT };
 
 export {
   screenshotTool,
@@ -41,7 +42,7 @@ export const tools = [
 
 /**
  * Extension initialization / registration for pi.dev.
- * Registers all 9 tools with the Pi extension context.
+ * Registers all 9 tools and the CUA system prompt with the Pi extension context.
  */
 export default function register(piContext?: any) {
   if (piContext && typeof piContext.registerTool === "function") {
@@ -55,10 +56,18 @@ export default function register(piContext?: any) {
     }
   }
 
+  // Register system prompt hook if supported by the host agent environment
+  if (piContext && typeof piContext.registerSystemPrompt === "function") {
+    piContext.registerSystemPrompt(CUA_SYSTEM_PROMPT);
+  } else if (piContext && typeof piContext.appendSystemPrompt === "function") {
+    piContext.appendSystemPrompt(CUA_SYSTEM_PROMPT);
+  }
+
   return {
     name: "pi-video-cua",
     version: "0.1.0",
     description: "Windows 11 Computer-Use Agent extension for DaVinci Resolve & desktop applications",
     tools,
+    systemPrompt: CUA_SYSTEM_PROMPT,
   };
 }
