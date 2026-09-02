@@ -541,6 +541,8 @@ mod tests {
         assert_eq!(rgba.len(), (dims.width * dims.height * 4) as usize);
     }
 
+
+
     #[test]
     fn test_prune_old_files() {
         let temp_dir = std::env::temp_dir().join("pi_cua_test_prune");

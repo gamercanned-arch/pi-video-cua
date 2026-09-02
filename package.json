@@ -19,6 +19,7 @@
     "build": "npm run build:helper && npm run build:ts",
     "test": "npm run build && node --input-type=module -e \"import('./dist/test/smoke-test.js');\"",
     "test:verify": "node --input-type=module -e \"import('./dist/test/verify-fixes.js');\"",
+    "test:actual": "npm run build && node --input-type=module -e \"import('./dist/test/actual-live-suite.js');\"",
     "prepack": "npm run build"
   },
   "keywords": [
