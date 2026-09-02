@@ -108,13 +108,13 @@ await scroll({
 ### Installing in Pi
 
 ```bash
-pi install github:gamercanned-arch/pi-video-cua
+pi install git:https://github.com/gamercanned-arch/pi-video-cua
 ```
 
 or via npm:
 
 ```bash
-npm install github:gamercanned-arch/pi-video-cua
+npm install git+https://github.com/gamercanned-arch/pi-video-cua.git
 ```
 
 ### Building from Source
@@ -127,7 +127,7 @@ npm install github:gamercanned-arch/pi-video-cua
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-org/pi-video-cua.git
+git clone https://github.com/gamercanned-arch/pi-video-cua.git
 cd pi-video-cua
 
 # 2. Install dependencies & build native helper + TypeScript
