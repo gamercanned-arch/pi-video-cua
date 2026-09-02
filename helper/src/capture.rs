@@ -49,7 +49,26 @@ struct DxgiContext {
 
 static DXGI_CACHE: Mutex<Option<DxgiContext>> = Mutex::new(None);
 
+pub fn ensure_interactive_desktop() {
+    unsafe {
+        use windows::Win32::System::StationsAndDesktops::{
+            OpenInputDesktop, SetThreadDesktop, DESKTOP_ACCESS_FLAGS, DESKTOP_CONTROL_FLAGS,
+        };
+        // When running in background subshells, Windows assigns threads to isolated desktops (e.g. exebox-*).
+        // Attaching the thread to the real active input desktop ('Default') enables DXGI duplication and GDI BitBlt
+        // to capture live desktop pixels rather than an empty headless surface.
+        if let Ok(hdesk) = OpenInputDesktop(
+            DESKTOP_CONTROL_FLAGS(0),
+            false,
+            DESKTOP_ACCESS_FLAGS(0x01FF),
+        ) {
+            let _ = SetThreadDesktop(hdesk);
+        }
+    }
+}
+
 pub fn init_dpi_awareness() {
+    ensure_interactive_desktop();
     unsafe {
         let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     }
@@ -123,11 +142,16 @@ fn prune_dir_sync(dir: &std::path::Path, max_count: usize, max_age: Duration) ->
 }
 
 pub fn capture_screen_raw() -> Result<(Vec<u8>, u32, u32)> {
+    ensure_interactive_desktop();
     let dims = get_screen_dimensions();
-    match capture_dxgi() {
-        Ok(res) => Ok(res),
-        Err(_) => capture_fallback_gdi(dims.width, dims.height),
+    if let Ok(res) = capture_dxgi() {
+        // Quick check first few thousand pixels: if DXGI returned a non-black frame, use it
+        let has_content = res.0.chunks_exact(4).take(5000).any(|c| c[0] > 5 || c[1] > 5 || c[2] > 5);
+        if has_content {
+            return Ok(res);
+        }
     }
+    capture_fallback_gdi(dims.width, dims.height)
 }
 
 pub fn capture_screen() -> Result<ScreenshotResult> {
@@ -540,6 +564,7 @@ mod tests {
         assert_eq!(h, dims.height);
         assert_eq!(rgba.len(), (dims.width * dims.height * 4) as usize);
     }
+
 
 
 
