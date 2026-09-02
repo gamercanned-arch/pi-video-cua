@@ -11,8 +11,14 @@
   "files": [
     "dist",
     "bin",
+    "index.js",
     "README.md"
   ],
+  "pi": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
   "scripts": {
     "build:helper": "cargo build --release --manifest-path helper/Cargo.toml && powershell -Command \"New-Item -ItemType Directory -Force -Path bin; Copy-Item helper/target/release/pi-video-cua-helper.exe -Destination bin/ -Force\"",
     "build:ts": "tsc && tsc -p tsconfig.test.json",

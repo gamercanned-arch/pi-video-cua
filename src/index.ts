@@ -61,7 +61,17 @@ export default function register(piContext?: any) {
         name: tool.name,
         description: tool.description,
         parameters: tool.parameters,
-        handler: tool.execute,
+        execute: async (...callArgs: any[]) => {
+          // Support Pi runtime signature: (toolCallId, params, signal, onUpdate, ctx)
+          // as well as direct invocation: (args)
+          let args: any = {};
+          if (typeof callArgs[0] === "string") {
+            args = callArgs[1] && typeof callArgs[1] === "object" ? callArgs[1] : {};
+          } else if (callArgs[0] && typeof callArgs[0] === "object") {
+            args = callArgs[0];
+          }
+          return tool.execute(args);
+        },
       });
     }
   }
