@@ -29,6 +29,13 @@ export interface RecordResult {
     error?: string;
 }
 /**
+ * Normalizes a coordinate to [0.0, 1.0].
+ * Gracefully supports both:
+ * - Standard [0, 1000] CUA scale (e.g. 500 -> 0.5)
+ * - [0.0, 1.0] unit scale (e.g. 0.5 -> 0.5)
+ */
+export declare function normalizeCoordinate(val: number): number;
+/**
  * Tool Arguments
  */
 export interface StartSessionArgs {

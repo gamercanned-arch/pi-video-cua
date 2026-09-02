@@ -36,15 +36,16 @@ This extension is built around the principle that **the agent reasons visually**
 ---
 
 ## 📐 Normalized Coordinate System
-
-To prevent hallucination of raw pixel offsets across different monitor setups (1080p, 1440p, 4K) and DPI scale factors (100%, 125%, 150%, 200%), coordinates are always normalized:
-
+ 
+To prevent hallucination of raw pixel offsets across different monitor setups (1080p, 1440p, 4K) and DPI scale factors (100%, 125%, 150%, 200%), coordinates are normalized and support **both** standard formats:
+ 
+- **Standard integer scale `[0, 1000]`**: `(0, 0)` is top-left, `(500, 500)` is center, `(1000, 1000)` is bottom-right.
+- **Unit float scale `[0.0, 1.0]`**: `(0.0, 0.0)` is top-left, `(0.5, 0.5)` is center, `(1.0, 1.0)` is bottom-right.
+ 
+Any coordinate value $> 1.0$ and $\le 1000.0$ is automatically recognized and scaled down by $1000.0$.
+ 
 $$\text{Pixel } X = x_{\text{norm}} \times (\text{Width} - 1)$$
 $$\text{Pixel } Y = y_{\text{norm}} \times (\text{Height} - 1)$$
-
-- `(0.0, 0.0)` is the **Top-Left** corner of the primary display.
-- `(0.5, 0.5)` is the **Center** of the screen.
-- `(1.0, 1.0)` is the **Bottom-Right** corner of the primary display.
 
 ---
 

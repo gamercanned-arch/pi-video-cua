@@ -116,18 +116,27 @@ async function runSmokeTests() {
 
     console.log("\n12. Testing SEC-16 Argument Validation (NaN, undefined, invalid bounds)...");
     
-    // Move mouse NaN
-    const badMove1 = await moveMouseTool.execute({ x: NaN, y: 0.5 });
+    // Testing [0, 1000] scale vs [0.0, 1.0] scale
+    const scale1000Move = await moveMouseTool.execute({ x: 500, y: 500 });
+    if (scale1000Move.isError) throw new Error("Expected [0, 1000] scale coordinate (500, 500) to succeed");
+    console.log("   ✓ Standard [0, 1000] scale successfully accepted and normalized!");
+
+    // Move mouse NaN / Out of bounds (> 1000 or < 0)
+    const badMove1 = await moveMouseTool.execute({ x: NaN, y: 500 });
     if (!badMove1.isError) throw new Error("Expected NaN x to fail validation");
-    const badMove2 = await moveMouseTool.execute({ x: 1.5, y: 0.5 });
-    if (!badMove2.isError) throw new Error("Expected out-of-bounds x to fail validation");
+    const badMove2 = await moveMouseTool.execute({ x: 1005, y: 500 });
+    if (!badMove2.isError) throw new Error("Expected out-of-bounds x (> 1000) to fail validation");
+    const badMoveNeg = await moveMouseTool.execute({ x: -1, y: 500 });
+    if (!badMoveNeg.isError) throw new Error("Expected negative x to fail validation");
     const badMove3 = await moveMouseTool.execute(undefined as any);
     if (!badMove3.isError) throw new Error("Expected undefined args to fail validation");
 
     // Drag invalid coords and modifiers
-    const badDrag1 = await dragTool.execute({ x1: NaN, y1: 0.2, x2: 0.3, y2: 0.4 });
+    const badDrag1 = await dragTool.execute({ x1: NaN, y1: 200, x2: 300, y2: 400 });
     if (!badDrag1.isError) throw new Error("Expected NaN x1 in drag to fail validation");
-    const badDrag2 = await dragTool.execute({ x1: 0.1, y1: 0.2, x2: 0.3, y2: 0.4, modifiers: [123 as any] });
+    const badDragOob = await dragTool.execute({ x1: 1500, y1: 200, x2: 300, y2: 400 });
+    if (!badDragOob.isError) throw new Error("Expected out-of-bounds x1 (> 1000) in drag to fail validation");
+    const badDrag2 = await dragTool.execute({ x1: 100, y1: 200, x2: 300, y2: 400, modifiers: [123 as any] });
     if (!badDrag2.isError) throw new Error("Expected invalid modifiers to fail validation");
 
     // Scroll invalid direction and amount

@@ -1,22 +1,23 @@
 import { HelperClient } from "../helper-client.js";
 import { SessionManager } from "../session-manager.js";
+import { normalizeCoordinate } from "../types.js";
 export const scrollTool = {
     name: "scroll",
-    description: "[Requires active CUA session started via 'start_session'] Positions the mouse at normalized coordinates (x, y) and scrolls in the specified direction ('up', 'down', 'left', or 'right') by the specified amount (default: 3). Returns a screenshot. Ideal for zooming the DaVinci Resolve timeline, navigating inspector panels, and scrolling media pools.",
+    description: "[Requires active CUA session started via 'start_session'] Positions the mouse at coordinates (x, y) and scrolls in the specified direction ('up', 'down', 'left', or 'right') by the specified amount (default: 3). Supports standard [0, 1000] integer scale or [0.0, 1.0] unit scale. Returns a screenshot.",
     parameters: {
         type: "object",
         properties: {
             x: {
                 type: "number",
-                description: "Normalized X coordinate (0.0 to 1.0) to position cursor before scrolling",
+                description: "X coordinate (0 to 1000 standard scale or 0.0 to 1.0 unit scale) to position cursor before scrolling",
                 minimum: 0.0,
-                maximum: 1.0,
+                maximum: 1000.0,
             },
             y: {
                 type: "number",
-                description: "Normalized Y coordinate (0.0 to 1.0) to position cursor before scrolling",
+                description: "Y coordinate (0 to 1000 standard scale or 0.0 to 1.0 unit scale) to position cursor before scrolling",
                 minimum: 0.0,
-                maximum: 1.0,
+                maximum: 1000.0,
             },
             direction: {
                 type: "string",
@@ -41,11 +42,11 @@ export const scrollTool = {
             return client.formatErrorResponse(new Error("Invalid arguments: expected an object with x, y, and direction."));
         }
         const { x, y, direction, amount } = args;
-        if (typeof x !== "number" || isNaN(x) || !isFinite(x) || x < 0.0 || x > 1.0) {
-            return client.formatErrorResponse(new Error(`Invalid 'x' coordinate: must be a finite number between 0.0 and 1.0. Received: ${x}`));
+        if (typeof x !== "number" || isNaN(x) || !isFinite(x) || x < 0.0 || x > 1000.0) {
+            return client.formatErrorResponse(new Error(`Invalid 'x' coordinate: must be a finite number between 0 and 1000 (or 0.0 and 1.0). Received: ${x}`));
         }
-        if (typeof y !== "number" || isNaN(y) || !isFinite(y) || y < 0.0 || y > 1.0) {
-            return client.formatErrorResponse(new Error(`Invalid 'y' coordinate: must be a finite number between 0.0 and 1.0. Received: ${y}`));
+        if (typeof y !== "number" || isNaN(y) || !isFinite(y) || y < 0.0 || y > 1000.0) {
+            return client.formatErrorResponse(new Error(`Invalid 'y' coordinate: must be a finite number between 0 and 1000 (or 0.0 and 1.0). Received: ${y}`));
         }
         const validDirections = ["up", "down", "left", "right"];
         if (typeof direction !== "string" || !validDirections.includes(direction.toLowerCase())) {
@@ -56,16 +57,18 @@ export const scrollTool = {
                 return client.formatErrorResponse(new Error(`Invalid 'amount' argument: must be a positive number >= 1. Received: ${amount}`));
             }
         }
+        const normX = normalizeCoordinate(x);
+        const normY = normalizeCoordinate(y);
         const scrollAmount = amount ?? 3;
         const normalizedDir = direction.toLowerCase();
         try {
             const res = await client.scroll({
-                x,
-                y,
+                x: normX,
+                y: normY,
                 direction: normalizedDir,
                 amount: scrollAmount,
             });
-            return client.formatScreenshotResponse(res, `Scrolled ${normalizedDir} by ${scrollAmount} steps at (${x.toFixed(4)}, ${y.toFixed(4)}).`);
+            return client.formatScreenshotResponse(res, `Scrolled ${normalizedDir} by ${scrollAmount} steps at (${normX.toFixed(4)}, ${normY.toFixed(4)}).`);
         }
         catch (err) {
             return client.formatErrorResponse(err);
