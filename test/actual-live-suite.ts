@@ -2,6 +2,8 @@ import { spawn, ChildProcess } from "node:child_process";
 import * as fs from "node:fs";
 import {
   HelperClient,
+  startSessionTool,
+  endSessionTool,
   screenshotTool,
   moveMouseTool,
   clickTool,
@@ -46,19 +48,25 @@ async function runLiveActualTestSuite() {
   const actionsCompleted: string[] = [];
 
   try {
-    // 1. Launch a dedicated, safe Notepad target window so interactions don't affect other apps
+    // 0. Verify safety guard: tools are locked before session start
+    console.log("[Safety Guard] Verifying desktop tools are locked before session start...");
+    const lockedRes = await moveMouseTool.execute({ x: 0.5, y: 0.5 });
+    if (!lockedRes.isError) throw new Error("Expected move_mouse to be locked before start_session");
+    console.log(" ✓ Confirmed: Desktop tools are locked until start_session is called.");
+
+    // 1. Open CUA session
+    console.log("[Session] Opening guarded CUA desktop session via start_session...");
+    const startRes = await startSessionTool.execute({ purpose: "Live desktop CUA validation suite" });
+    if (startRes.isError) throw new Error("Failed to start session: " + JSON.stringify(startRes));
+    const initScreenPath = startRes.details?.imagePath as string;
+    console.log(" ✓ CUA Session active. Playbook delivered and baseline screenshot captured at:", initScreenPath);
+    actionsCompleted.push(`start_session (${initScreenPath})`);
+
+    // 2. Launch a dedicated, safe Notepad target window so interactions don't affect other apps
     console.log("[Setup] Spawning notepad.exe as a safe, isolated interaction target...");
     notepadProc = spawn("notepad.exe", [], { stdio: "ignore" });
     await sleep(1500); // Give Notepad time to initialize and render
     actionsCompleted.push("Spawned notepad.exe sandbox target");
-
-    // 2. Initial Full Screenshot
-    console.log("[1/9] Capturing initial baseline screenshot...");
-    const initRes = await screenshotTool.execute({});
-    if (initRes.isError) throw new Error("Initial screenshot failed: " + JSON.stringify(initRes));
-    const initScreenPath = initRes.details?.imagePath as string;
-    console.log(" ✓ Initial screenshot captured at:", initScreenPath);
-    actionsCompleted.push(`screenshot: ${initScreenPath}`);
 
     // 3. Move Mouse into Notepad text editing area
     console.log("[2/9] Moving mouse to center (0.45, 0.45) inside Notepad...");
@@ -143,6 +151,15 @@ async function runLiveActualTestSuite() {
     const finalShot = await screenshotTool.execute({});
     const finalShotPath = finalShot.details?.imagePath as string;
 
+    // Close CUA session
+    console.log("[Session] Closing CUA desktop session via end_session...");
+    const endRes = await endSessionTool.execute({ summary: "Live CUA interaction suite successfully concluded." });
+    console.log(" ✓ CUA Session closed. Verifying tools are safely locked...");
+    const postLockedRes = await moveMouseTool.execute({ x: 0.5, y: 0.5 });
+    if (!postLockedRes.isError) throw new Error("Expected move_mouse to be locked after end_session");
+    console.log(" ✓ Confirmed: Desktop tools are safely locked after session closure.");
+    actionsCompleted.push("end_session");
+
     const report: LiveTestReport = {
       success: true,
       artifacts: {
@@ -153,7 +170,7 @@ async function runLiveActualTestSuite() {
         videoPath,
       },
       metrics: {
-        screenDimensions: initRes.details?.dimensions,
+        screenDimensions: startRes.details?.dimensions,
         videoDuration,
         videoSizeBytes: videoStats.size,
       },

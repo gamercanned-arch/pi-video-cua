@@ -1,3 +1,5 @@
+import { startSessionTool } from "./tools/start-session.js";
+import { endSessionTool } from "./tools/end-session.js";
 import { screenshotTool } from "./tools/screenshot.js";
 import { moveMouseTool } from "./tools/move-mouse.js";
 import { clickTool } from "./tools/click.js";
@@ -8,14 +10,17 @@ import { screenRecordTool } from "./tools/screen-record.js";
 import { dragTool } from "./tools/drag.js";
 import { scrollTool } from "./tools/scroll.js";
 import { HelperClient, HelperError } from "./helper-client.js";
+import { SessionManager } from "./session-manager.js";
 import { CUA_SYSTEM_PROMPT } from "./prompt.js";
 export * from "./types.js";
-export { HelperClient, HelperError, CUA_SYSTEM_PROMPT };
-export { screenshotTool, moveMouseTool, clickTool, typeTextTool, pressKeyTool, waitTool, screenRecordTool, dragTool, scrollTool, };
+export { HelperClient, HelperError, SessionManager, CUA_SYSTEM_PROMPT };
+export { startSessionTool, endSessionTool, screenshotTool, moveMouseTool, clickTool, typeTextTool, pressKeyTool, waitTool, screenRecordTool, dragTool, scrollTool, };
 /**
- * Array of all 9 computer-use agent tools provided by pi-video-cua.
+ * Array of all 11 computer-use agent tools provided by pi-video-cua.
+ * All desktop interaction tools are guarded and require calling start_session first.
  */
 export const tools = [
+    startSessionTool,
     screenshotTool,
     moveMouseTool,
     clickTool,
@@ -25,10 +30,13 @@ export const tools = [
     screenRecordTool,
     dragTool,
     scrollTool,
+    endSessionTool,
 ];
 /**
  * Extension initialization / registration for pi.dev.
- * Registers all 9 tools and the CUA system prompt with the Pi extension context.
+ * Registers tools with the Pi extension context.
+ * No system prompt is injected — the agent learns how to use the tools
+ * safely through tool schemas and when calling 'start_session'.
  */
 export default function register(piContext) {
     if (piContext && typeof piContext.registerTool === "function") {
@@ -41,19 +49,11 @@ export default function register(piContext) {
             });
         }
     }
-    // Register system prompt hook if supported by the host agent environment
-    if (piContext && typeof piContext.registerSystemPrompt === "function") {
-        piContext.registerSystemPrompt(CUA_SYSTEM_PROMPT);
-    }
-    else if (piContext && typeof piContext.appendSystemPrompt === "function") {
-        piContext.appendSystemPrompt(CUA_SYSTEM_PROMPT);
-    }
     return {
         name: "pi-video-cua",
         version: "0.1.0",
-        description: "Windows 11 Computer-Use Agent extension for DaVinci Resolve & desktop applications",
+        description: "Windows 11 Computer-Use Agent extension with guarded desktop sessions for DaVinci Resolve & desktop applications",
         tools,
-        systemPrompt: CUA_SYSTEM_PROMPT,
     };
 }
 //# sourceMappingURL=index.js.map

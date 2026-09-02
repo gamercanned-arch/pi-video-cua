@@ -1,10 +1,11 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 import { MoveMouseArgs, PiTool } from "../types.js";
 
 export const moveMouseTool: PiTool<MoveMouseArgs> = {
   name: "move_mouse",
   description:
-    "Moves the mouse cursor to normalized (x, y) coordinates (0.0 to 1.0) on the screen and returns a screenshot showing the cursor's new position for visual verification.",
+    "[Requires active CUA session started via 'start_session'] Moves the mouse cursor to normalized (x, y) coordinates (0.0 to 1.0) on the screen and returns a screenshot showing the cursor's new position for visual verification.",
   parameters: {
     type: "object",
     properties: {
@@ -25,6 +26,14 @@ export const moveMouseTool: PiTool<MoveMouseArgs> = {
   },
   execute: async (args: MoveMouseArgs) => {
     const client = HelperClient.getInstance();
+
+    if (!SessionManager.getInstance().isActive()) {
+      return client.formatErrorResponse(
+        new Error(
+          "CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."
+        )
+      );
+    }
 
     if (!args || typeof args !== "object") {
       return client.formatErrorResponse(

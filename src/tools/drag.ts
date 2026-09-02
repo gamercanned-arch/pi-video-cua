@@ -1,10 +1,11 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 import { DragArgs, PiTool } from "../types.js";
 
 export const dragTool: PiTool<DragArgs> = {
   name: "drag",
   description:
-    "Performs a smooth mouse drag operation from (x1, y1) to (x2, y2) using normalized coordinates (0.0 to 1.0) with optional modifier keys (e.g. ['alt'], ['shift']). Presses the modifiers and left button at start, interpolates smooth movement, releases at end, and returns a screenshot. Ideal for dragging timeline clips, Alt-drag duplicating clips, trimming edit points, and moving effects in DaVinci Resolve.",
+    "[Requires active CUA session started via 'start_session'] Performs a smooth mouse drag operation from (x1, y1) to (x2, y2) using normalized coordinates (0.0 to 1.0) with optional modifier keys (e.g. ['alt'], ['shift']). Presses the modifiers and left button at start, interpolates smooth movement, releases at end, and returns a screenshot. Ideal for dragging timeline clips, Alt-drag duplicating clips, trimming edit points, and moving effects in DaVinci Resolve.",
   parameters: {
     type: "object",
     properties: {
@@ -45,6 +46,14 @@ export const dragTool: PiTool<DragArgs> = {
   },
   execute: async (args: DragArgs) => {
     const client = HelperClient.getInstance();
+
+    if (!SessionManager.getInstance().isActive()) {
+      return client.formatErrorResponse(
+        new Error(
+          "CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."
+        )
+      );
+    }
 
     if (!args || typeof args !== "object") {
       return client.formatErrorResponse(

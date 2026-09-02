@@ -34,6 +34,16 @@ export interface RecordResult {
 /**
  * Tool Arguments
  */
+export interface StartSessionArgs {
+  /** Optional description of the goal or workflow for this desktop control session */
+  purpose?: string;
+}
+
+export interface EndSessionArgs {
+  /** Optional summary of accomplishments before closing the session */
+  summary?: string;
+}
+
 export interface ScreenshotArgs {}
 
 export interface MoveMouseArgs {

@@ -13,22 +13,25 @@ This extension is built around the principle that **the agent reasons visually**
 - **Immediate Visual Feedback**: Every tool that changes screen state returns an instant, high-resolution screenshot with the mouse cursor rendered in place. The agent can immediately inspect the effect of its action, self-correct if it miscalculated a coordinate, and plan its next move.
 - **Zero Latency**: A persistent native helper process (`pi-video-cua-helper.exe`) stays alive across tool invocations, eliminating startup overhead.
 - **Hardware-Accelerated Compatibility**: Uses low-level Windows Desktop Duplication and SendInput APIs to reliably interact with Qt-based, GPU-accelerated applications like DaVinci Resolve.
+- **Session-Guarded Safety**: Desktop interaction tools (mouse, keyboard, recording) are locked by default. An agent must explicitly call `start_session` to open a session. Upon calling `start_session`, the agent receives the complete operational playbook and an immediate desktop screenshot. When finished, `end_session` locks the tools again.
 
 ---
 
-## 🛠️ The 9 Agent Tools
+## 🛠️ The Agent Tools (Session-Guarded)
 
 | Tool | Parameters | Description |
 | :--- | :--- | :--- |
-| `screenshot` | *(none)* | Captures the entire primary display with cursor overlay and returns image + resolution metadata. |
-| `move_mouse` | `x`, `y` | Moves the cursor to normalized coordinates `(0.0 - 1.0)` and returns a screenshot to verify cursor placement. |
-| `click` | `button?` (`"left"` \| `"right"` \| `"middle"`) | Clicks at the current cursor position. Returns a screenshot of the resulting UI state. |
-| `type_text` | `text` | Injects Unicode characters into the currently focused text field character-by-character. |
-| `press_key` | `key` | Presses single keys (`enter`, `space`, `tab`, `backspace`, `f1`-`f12`, etc.) or modifier combinations (`ctrl+s`, `ctrl+shift+z`, `alt+tab`). |
-| `wait` | `ms` | Waits for a specified duration in milliseconds (for render completion, animations, or playback) and returns a fresh screenshot. |
-| `screen_record` | `duration` | Records the screen and system audio simultaneously using FFmpeg for the specified duration (seconds). Returns video file path and end screenshot. |
-| `drag` | `x1`, `y1`, `x2`, `y2` | Presses left mouse button at `(x1, y1)`, performs smooth interpolated drag movement with micro-delays to `(x2, y2)`, releases, and returns a screenshot. |
-| `scroll` | `x`, `y`, `direction`, `amount?` | Positions cursor at `(x, y)` and simulates vertical (`"up"`/`"down"`) or horizontal (`"left"`/`"right"`) mouse wheel scrolling. |
+| 🛡️ `start_session` | `purpose?` | **REQUIRED FIRST STEP**. Opens the CUA session, unlocks desktop control tools, captures the initial screen, and delivers operational instructions & DaVinci Resolve shortcuts. |
+| `screenshot` | *(none)* | Captures the entire primary display with cursor overlay and returns image + resolution metadata. *(Guarded)* |
+| `move_mouse` | `x`, `y` | Moves cursor to normalized coordinates `(0.0 - 1.0)` and returns a screenshot to verify cursor placement. *(Guarded)* |
+| `click` | `button?` (`"left"` \| `"right"` \| `"middle"`) | Clicks at current cursor position (default `"left"`). Returns screenshot of resulting state. *(Guarded)* |
+| `type_text` | `text` | Injects Unicode characters into the currently focused text field character-by-character. *(Guarded)* |
+| `press_key` | `key` | Presses single keys (`enter`, `space`, `tab`, `b`, `a`, `[`, `]`, `\`) or combos (`ctrl+s`, `ctrl+b`, `alt+tab`). *(Guarded)* |
+| `wait` | `ms` | Waits specified milliseconds (for render completion, animations, or playback) and returns fresh screenshot. *(Guarded)* |
+| `screen_record` | `duration` | Records screen & system audio via FFmpeg for specified duration (seconds). Returns video path & end screenshot. *(Guarded)* |
+| `drag` | `x1`, `y1`, `x2`, `y2`, `modifiers?` | Smooth interpolated drag movement with optional modifiers (e.g. `["alt"]` for clip duplication). *(Guarded)* |
+| `scroll` | `x`, `y`, `direction`, `amount?` | Positions cursor at `(x, y)` and simulates vertical (`"up"`/`"down"`) or horizontal (`"left"`/`"right"`) wheel scrolling. *(Guarded)* |
+| 🔒 `end_session` | `summary?` | Concludes active CUA session, releases held keys/buttons, terminates helper process, and locks all desktop interaction tools. |
 
 ---
 

@@ -1,7 +1,8 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 export const screenRecordTool = {
     name: "screen_record",
-    description: "Records the primary screen and system audio simultaneously for a specified duration in seconds using FFmpeg. Returns the resulting MP4 video file path and a screenshot. Useful for watching and listening to DaVinci Resolve timeline playback.",
+    description: "[Requires active CUA session started via 'start_session'] Records the primary screen and system audio simultaneously for a specified duration in seconds using FFmpeg. Returns the resulting MP4 video file path and a screenshot. Useful for watching and listening to DaVinci Resolve timeline playback.",
     parameters: {
         type: "object",
         properties: {
@@ -16,6 +17,9 @@ export const screenRecordTool = {
     },
     execute: async (args) => {
         const client = HelperClient.getInstance();
+        if (!SessionManager.getInstance().isActive()) {
+            return client.formatErrorResponse(new Error("CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."));
+        }
         if (!args || typeof args !== "object") {
             return client.formatErrorResponse(new Error("Invalid arguments: expected an object with 'duration' property."));
         }

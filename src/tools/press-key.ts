@@ -1,10 +1,11 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 import { PiTool, PressKeyArgs } from "../types.js";
 
 export const pressKeyTool: PiTool<PressKeyArgs> = {
   name: "press_key",
   description:
-    "Presses a single key (e.g. 'enter', 'space', 'tab', 'escape', 'backspace', 'delete', 'f1'-'f12', 'a'-'z') or a combination separated by '+' (e.g. 'ctrl+s', 'ctrl+shift+z', 'alt+tab'). Returns a screenshot.",
+    "[Requires active CUA session started via 'start_session'] Presses a single key (e.g. 'enter', 'space', 'tab', 'escape', 'backspace', 'delete', 'f1'-'f12', 'a'-'z') or a combination separated by '+' (e.g. 'ctrl+s', 'ctrl+shift+z', 'alt+tab'). Returns a screenshot.",
   parameters: {
     type: "object",
     properties: {
@@ -18,6 +19,14 @@ export const pressKeyTool: PiTool<PressKeyArgs> = {
   },
   execute: async (args: PressKeyArgs) => {
     const client = HelperClient.getInstance();
+
+    if (!SessionManager.getInstance().isActive()) {
+      return client.formatErrorResponse(
+        new Error(
+          "CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."
+        )
+      );
+    }
 
     if (!args || typeof args !== "object") {
       return client.formatErrorResponse(

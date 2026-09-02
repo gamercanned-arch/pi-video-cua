@@ -1,7 +1,8 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 export const typeTextTool = {
     name: "type_text",
-    description: "Types text character-by-character at the current OS input focus point using native OS Unicode text injection. Returns a screenshot of the resulting screen state.",
+    description: "[Requires active CUA session started via 'start_session'] Types text character-by-character at the current OS input focus point using native OS Unicode text injection. Returns a screenshot of the resulting screen state.",
     parameters: {
         type: "object",
         properties: {
@@ -14,6 +15,9 @@ export const typeTextTool = {
     },
     execute: async (args) => {
         const client = HelperClient.getInstance();
+        if (!SessionManager.getInstance().isActive()) {
+            return client.formatErrorResponse(new Error("CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."));
+        }
         if (!args || typeof args !== "object") {
             return client.formatErrorResponse(new Error("Invalid arguments: expected an object with 'text' property."));
         }

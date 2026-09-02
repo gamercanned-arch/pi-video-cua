@@ -1,10 +1,11 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 import { ClickArgs, PiTool } from "../types.js";
 
 export const clickTool: PiTool<ClickArgs> = {
   name: "click",
   description:
-    "Clicks at the current mouse cursor position without moving it. Defaults to left-click; optionally set to 'right' or 'middle'. Returns a screenshot of the resulting screen state.",
+    "[Requires active CUA session started via 'start_session'] Clicks at the current mouse cursor position without moving it. Defaults to left-click; optionally set to 'right' or 'middle'. Returns a screenshot of the resulting screen state.",
   parameters: {
     type: "object",
     properties: {
@@ -18,6 +19,15 @@ export const clickTool: PiTool<ClickArgs> = {
   },
   execute: async (args: ClickArgs) => {
     const client = HelperClient.getInstance();
+
+    if (!SessionManager.getInstance().isActive()) {
+      return client.formatErrorResponse(
+        new Error(
+          "CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."
+        )
+      );
+    }
+
     if (args !== undefined && (typeof args !== "object" || args === null)) {
       return client.formatErrorResponse(new Error("Invalid arguments: 'args' must be an object."));
     }

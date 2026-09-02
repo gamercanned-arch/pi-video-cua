@@ -1,7 +1,8 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 export const clickTool = {
     name: "click",
-    description: "Clicks at the current mouse cursor position without moving it. Defaults to left-click; optionally set to 'right' or 'middle'. Returns a screenshot of the resulting screen state.",
+    description: "[Requires active CUA session started via 'start_session'] Clicks at the current mouse cursor position without moving it. Defaults to left-click; optionally set to 'right' or 'middle'. Returns a screenshot of the resulting screen state.",
     parameters: {
         type: "object",
         properties: {
@@ -15,6 +16,9 @@ export const clickTool = {
     },
     execute: async (args) => {
         const client = HelperClient.getInstance();
+        if (!SessionManager.getInstance().isActive()) {
+            return client.formatErrorResponse(new Error("CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."));
+        }
         if (args !== undefined && (typeof args !== "object" || args === null)) {
             return client.formatErrorResponse(new Error("Invalid arguments: 'args' must be an object."));
         }

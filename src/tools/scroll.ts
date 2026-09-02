@@ -1,10 +1,11 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 import { PiTool, ScrollArgs } from "../types.js";
 
 export const scrollTool: PiTool<ScrollArgs> = {
   name: "scroll",
   description:
-    "Positions the mouse at normalized coordinates (x, y) and scrolls in the specified direction ('up', 'down', 'left', or 'right') by the specified amount (default: 3). Returns a screenshot. Ideal for zooming the DaVinci Resolve timeline, navigating inspector panels, and scrolling media pools.",
+    "[Requires active CUA session started via 'start_session'] Positions the mouse at normalized coordinates (x, y) and scrolls in the specified direction ('up', 'down', 'left', or 'right') by the specified amount (default: 3). Returns a screenshot. Ideal for zooming the DaVinci Resolve timeline, navigating inspector panels, and scrolling media pools.",
   parameters: {
     type: "object",
     properties: {
@@ -36,6 +37,14 @@ export const scrollTool: PiTool<ScrollArgs> = {
   },
   execute: async (args: ScrollArgs) => {
     const client = HelperClient.getInstance();
+
+    if (!SessionManager.getInstance().isActive()) {
+      return client.formatErrorResponse(
+        new Error(
+          "CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."
+        )
+      );
+    }
 
     if (!args || typeof args !== "object") {
       return client.formatErrorResponse(

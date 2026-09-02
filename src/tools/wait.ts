@@ -1,10 +1,11 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 import { PiTool, WaitArgs } from "../types.js";
 
 export const waitTool: PiTool<WaitArgs> = {
   name: "wait",
   description:
-    "Waits for a specified duration in milliseconds (useful for waiting for render progress, playback, UI animations, or dialog loading) and then returns an updated screenshot.",
+    "[Requires active CUA session started via 'start_session'] Waits for a specified duration in milliseconds (useful for waiting for render progress, playback, UI animations, or dialog loading) and then returns an updated screenshot.",
   parameters: {
     type: "object",
     properties: {
@@ -18,6 +19,14 @@ export const waitTool: PiTool<WaitArgs> = {
   },
   execute: async (args: WaitArgs) => {
     const client = HelperClient.getInstance();
+
+    if (!SessionManager.getInstance().isActive()) {
+      return client.formatErrorResponse(
+        new Error(
+          "CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."
+        )
+      );
+    }
 
     if (!args || typeof args !== "object") {
       return client.formatErrorResponse(

@@ -1,10 +1,13 @@
-import { HelperClient, screenshotTool, dragTool, pressKeyTool, } from "../src/index.js";
+import { HelperClient, SessionManager, startSessionTool, endSessionTool, screenshotTool, dragTool, pressKeyTool, } from "../src/index.js";
 async function runTests() {
     console.log("=================================================");
     console.log("  Running Comprehensive Fix Verification Suite");
     console.log("=================================================\n");
     const client = HelperClient.getInstance();
+    const sessionManager = SessionManager.getInstance();
     try {
+        // 0. Start CUA Session for verification
+        await startSessionTool.execute({ purpose: "Fix verification test suite" });
         // 1. Verify Process Listener Registration
         console.log("1. Verifying Process Event Listeners...");
         const exitListenersBefore = process.listenerCount("exit");
@@ -113,6 +116,7 @@ async function runTests() {
         if (!errorCaught) {
             throw new Error("Expected ensureRunning to reject with error for invalid binary path");
         }
+        await endSessionTool.execute({});
         console.log("\n=================================================");
         console.log("  ALL TESTS & VERIFICATIONS PASSED SUCCESSFULLY!");
         console.log("=================================================");
@@ -122,6 +126,7 @@ async function runTests() {
         process.exit(1);
     }
     finally {
+        sessionManager.end();
         client.dispose();
     }
 }

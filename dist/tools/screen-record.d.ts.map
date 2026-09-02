@@ -1,1 +1,1 @@
-{"version":3,"file":"screen-record.d.ts","sourceRoot":"","sources":["../../src/tools/screen-record.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,MAAM,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC;AAEvD,eAAO,MAAM,gBAAgB,EAAE,MAAM,CAAC,gBAAgB,CAiDrD,CAAC"}
+{"version":3,"file":"screen-record.d.ts","sourceRoot":"","sources":["../../src/tools/screen-record.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,MAAM,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC;AAEvD,eAAO,MAAM,gBAAgB,EAAE,MAAM,CAAC,gBAAgB,CAyDrD,CAAC"}

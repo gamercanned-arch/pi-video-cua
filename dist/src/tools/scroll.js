@@ -1,7 +1,8 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 export const scrollTool = {
     name: "scroll",
-    description: "Positions the mouse at normalized coordinates (x, y) and scrolls in the specified direction ('up', 'down', 'left', or 'right') by the specified amount (default: 3). Returns a screenshot. Ideal for zooming the DaVinci Resolve timeline, navigating inspector panels, and scrolling media pools.",
+    description: "[Requires active CUA session started via 'start_session'] Positions the mouse at normalized coordinates (x, y) and scrolls in the specified direction ('up', 'down', 'left', or 'right') by the specified amount (default: 3). Returns a screenshot. Ideal for zooming the DaVinci Resolve timeline, navigating inspector panels, and scrolling media pools.",
     parameters: {
         type: "object",
         properties: {
@@ -33,6 +34,9 @@ export const scrollTool = {
     },
     execute: async (args) => {
         const client = HelperClient.getInstance();
+        if (!SessionManager.getInstance().isActive()) {
+            return client.formatErrorResponse(new Error("CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."));
+        }
         if (!args || typeof args !== "object") {
             return client.formatErrorResponse(new Error("Invalid arguments: expected an object with x, y, and direction."));
         }

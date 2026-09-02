@@ -1,10 +1,11 @@
 import { HelperClient } from "../helper-client.js";
+import { SessionManager } from "../session-manager.js";
 import { PiTool, TypeTextArgs } from "../types.js";
 
 export const typeTextTool: PiTool<TypeTextArgs> = {
   name: "type_text",
   description:
-    "Types text character-by-character at the current OS input focus point using native OS Unicode text injection. Returns a screenshot of the resulting screen state.",
+    "[Requires active CUA session started via 'start_session'] Types text character-by-character at the current OS input focus point using native OS Unicode text injection. Returns a screenshot of the resulting screen state.",
   parameters: {
     type: "object",
     properties: {
@@ -17,6 +18,14 @@ export const typeTextTool: PiTool<TypeTextArgs> = {
   },
   execute: async (args: TypeTextArgs) => {
     const client = HelperClient.getInstance();
+
+    if (!SessionManager.getInstance().isActive()) {
+      return client.formatErrorResponse(
+        new Error(
+          "CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."
+        )
+      );
+    }
 
     if (!args || typeof args !== "object") {
       return client.formatErrorResponse(
