@@ -118,10 +118,12 @@ fn handle_request(req: JsonRpcRequest) -> String {
                 Ok(p) => p,
                 Err(_) => ClickParams {
                     button: "left".to_string(),
+                    count: 1,
+                    delay_ms: 100,
                 },
             };
 
-            if let Err(e) = click(&params.button) {
+            if let Err(e) = click(&params.button, params.count, params.delay_ms) {
                 return error_with_screenshot(id, &e.to_string());
             }
 

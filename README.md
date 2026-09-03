@@ -24,7 +24,7 @@ This extension is built around the principle that **the agent reasons visually**
 | 🛡️ `start_session` | `purpose?` | **REQUIRED FIRST STEP**. Opens the CUA session, unlocks desktop control tools, captures the initial screen, and delivers operational instructions & DaVinci Resolve shortcuts. |
 | `screenshot` | *(none)* | Captures the entire primary display with cursor overlay and returns image + resolution metadata. *(Guarded)* |
 | `move_mouse` | `x`, `y` | Moves cursor to normalized coordinates `(0.0 - 1.0)` and returns a screenshot to verify cursor placement. *(Guarded)* |
-| `click` | `button?` (`"left"` \| `"right"` \| `"middle"`) | Clicks at current cursor position (default `"left"`). Returns screenshot of resulting state. *(Guarded)* |
+| `click` | `button?`, `click_type?`, `double_click?`, `count?`, `delay_ms?` | Clicks at current cursor position. Supports single, double, and triple clicks with configurable UI settle delay. Returns resulting screenshot. *(Guarded)* |
 | `type_text` | `text` | Injects Unicode characters into the currently focused text field character-by-character. *(Guarded)* |
 | `press_key` | `key` | Presses single keys (`enter`, `space`, `tab`, `b`, `a`, `[`, `]`, `\`) or combos (`ctrl+s`, `ctrl+b`, `alt+tab`). *(Guarded)* |
 | `wait` | `ms` | Waits specified milliseconds (for render completion, animations, or playback) and returns fresh screenshot. *(Guarded)* |
@@ -137,6 +137,34 @@ npm run build
 
 # 3. Run smoke test
 npm test
+```
+
+---
+
+### Using as an MCP Server (Antigravity, Claude Desktop, Cursor)
+
+`pi-video-cua` provides a full **Model Context Protocol (MCP)** server interface running over standard I/O (stdio). All 11 CUA tools are accessible with multimodal image feedback.
+
+#### Automatic Registration in Antigravity
+Run the registration script:
+```bash
+npm run register:antigravity
+```
+This directly adds `pi-video-cua` to `~/.gemini/antigravity/mcp_config.json`.
+
+#### Manual MCP Configuration (Claude Desktop / Antigravity / Cursor)
+Add to your client's MCP configuration JSON:
+```json
+{
+  "mcpServers": {
+    "pi-video-cua": {
+      "command": "node",
+      "args": [
+        "c:/Users/abhik/Documents/antigravity/calm-bose/dist/mcp-server.js"
+      ]
+    }
+  }
+}
 ```
 
 ---

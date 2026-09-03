@@ -246,7 +246,27 @@ export class HelperClient {
   }
 
   public async click(args: ClickArgs = {}): Promise<ScreenshotResult> {
-    return this.callMethod<ScreenshotResult>("click", { button: args.button ?? "left" });
+    let count = 1;
+    if (args.count && args.count > 0) {
+      count = args.count;
+    } else if (args.double_click) {
+      count = 2;
+    } else if (args.click_type === "double") {
+      count = 2;
+    } else if (args.click_type === "triple") {
+      count = 3;
+    }
+
+    const delayMs =
+      typeof args.delay_ms === "number" && isFinite(args.delay_ms)
+        ? Math.max(args.delay_ms, 100)
+        : 100;
+
+    return this.callMethod<ScreenshotResult>("click", {
+      button: args.button ?? "left",
+      count,
+      delay_ms: delayMs,
+    });
   }
 
   public async typeText(args: TypeTextArgs): Promise<ScreenshotResult> {

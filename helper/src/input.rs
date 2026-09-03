@@ -67,12 +67,14 @@ pub fn move_mouse(x: f64, y: f64) -> Result<()> {
     Ok(())
 }
 
-pub fn click(button: &str) -> Result<()> {
+pub fn click(button: &str, count: u32, delay_ms: u64) -> Result<()> {
     let (down_flag, up_flag) = match button.to_lowercase().as_str() {
         "right" => (MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP),
         "middle" => (MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP),
         _ => (MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP),
     };
+
+    let click_count = count.clamp(1, 5);
 
     unsafe {
         let input_down = INPUT {
@@ -103,12 +105,21 @@ pub fn click(button: &str) -> Result<()> {
             },
         };
 
-        SendInput(&[input_down], std::mem::size_of::<INPUT>() as i32);
-        sleep(Duration::from_millis(30));
-        SendInput(&[input_up], std::mem::size_of::<INPUT>() as i32);
+        for i in 0..click_count {
+            SendInput(&[input_down], std::mem::size_of::<INPUT>() as i32);
+            sleep(Duration::from_millis(30));
+            SendInput(&[input_up], std::mem::size_of::<INPUT>() as i32);
+
+            if i + 1 < click_count {
+                // Windows standard double-click interval spacing (~80ms)
+                sleep(Duration::from_millis(80));
+            }
+        }
     }
 
-    sleep(Duration::from_millis(20));
+    // Allow UI rendering to settle (default 100ms or specified delay) before capturing screenshot
+    let settle = delay_ms.max(100);
+    sleep(Duration::from_millis(settle));
     Ok(())
 }
 

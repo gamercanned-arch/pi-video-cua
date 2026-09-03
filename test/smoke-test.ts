@@ -73,6 +73,14 @@ async function runSmokeTests() {
       throw new Error(`Click failed: ${JSON.stringify(clickRes)}`);
     }
 
+    console.log("\n6b. Testing 'click' tool with double-click (click_type: 'double', settle delay: 150ms)...");
+    const doubleClickRes = await clickTool.execute({ click_type: "double", delay_ms: 150 });
+    console.log("Double-click response status:", doubleClickRes.isError ? "FAILED" : "SUCCESS");
+    if (doubleClickRes.isError) {
+      throw new Error(`Double-click failed: ${JSON.stringify(doubleClickRes)}`);
+    }
+    console.log(" ✓ Double-click executed successfully and returned verification screenshot.");
+
     console.log("\n7. Testing 'drag' tool (smooth drag without modifiers)...");
     const dragRes = await dragTool.execute({ x1: 0.5, y1: 0.5, x2: 0.52, y2: 0.52 });
     console.log("Drag response status:", dragRes.isError ? "FAILED" : "SUCCESS");

@@ -65,10 +65,22 @@ pub struct MoveMouseParams {
 pub struct ClickParams {
     #[serde(default = "default_left")]
     pub button: String,
+    #[serde(default = "default_click_count")]
+    pub count: u32,
+    #[serde(default = "default_delay_ms")]
+    pub delay_ms: u64,
 }
 
 fn default_left() -> String {
     "left".to_string()
+}
+
+fn default_click_count() -> u32 {
+    1
+}
+
+fn default_delay_ms() -> u64 {
+    100
 }
 
 #[derive(Debug, Clone, Deserialize)]

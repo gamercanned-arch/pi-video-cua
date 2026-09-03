@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "bin": {
-    "pi-video-cua-helper": "./bin/pi-video-cua-helper.exe"
+    "pi-video-cua-helper": "./bin/pi-video-cua-helper.exe",
+    "pi-video-cua-mcp": "./dist/mcp-server.js"
   },
   "files": [
     "dist",
@@ -24,8 +25,10 @@
     "build:ts": "tsc && tsc -p tsconfig.test.json",
     "build": "npm run build:helper && npm run build:ts",
     "test": "npm run build && node --input-type=module -e \"import('./dist/test/smoke-test.js');\"",
+    "test:mcp": "node --input-type=module -e \"import('./dist/test/mcp-server.test.js');\"",
     "test:verify": "node --input-type=module -e \"import('./dist/test/verify-fixes.js');\"",
     "test:actual": "npm run build && node --input-type=module -e \"import('./dist/test/actual-live-suite.js');\"",
+    "register:antigravity": "node --input-type=module -e \"import('./dist/register-antigravity.js');\"",
     "prepack": "npm run build"
   },
   "keywords": [
@@ -43,5 +46,8 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
   }
 }

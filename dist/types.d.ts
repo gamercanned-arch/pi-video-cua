@@ -57,6 +57,14 @@ export interface MoveMouseArgs {
 export interface ClickArgs {
     /** Mouse button to click: 'left', 'right', or 'middle'. Default: 'left' */
     button?: "left" | "right" | "middle";
+    /** Click action type: 'single', 'double', or 'triple'. Default: 'single' */
+    click_type?: "single" | "double" | "triple";
+    /** Shorthand flag for double-clicking. If true, performs a double-click */
+    double_click?: boolean;
+    /** Explicit number of clicks (1 to 5). Default: 1 */
+    count?: number;
+    /** Milliseconds to wait after clicking before capturing the verification screenshot (default: 100ms) */
+    delay_ms?: number;
 }
 export interface TypeTextArgs {
     /** Text string to type character-by-character at the current cursor focus */
