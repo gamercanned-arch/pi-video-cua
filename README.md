@@ -21,31 +21,112 @@ This extension is built around the principle that **the agent reasons visually**
 
 | Tool | Parameters | Description |
 | :--- | :--- | :--- |
-| 🛡️ `start_session` | `purpose?` | **REQUIRED FIRST STEP**. Opens the CUA session, unlocks desktop control tools, captures the initial screen, and delivers operational instructions & DaVinci Resolve shortcuts. |
+| 🛡️ `start_session` | `purpose?` | **REQUIRED FIRST STEP**. Opens the CUA session, unlocks desktop control tools, captures the initial screen, and delivers operational instructions & application shortcuts. |
 | `screenshot` | *(none)* | Captures the entire primary display with cursor overlay and returns image + resolution metadata. *(Guarded)* |
-| `move_mouse` | `x`, `y` | Moves cursor to normalized coordinates `(0.0 - 1.0)` and returns a screenshot to verify cursor placement. *(Guarded)* |
-| `click` | `button?`, `click_type?`, `double_click?`, `count?`, `delay_ms?` | Clicks at current cursor position. Supports single, double, and triple clicks with configurable UI settle delay. Returns resulting screenshot. *(Guarded)* |
+| `move_mouse` | `x`, `y`, `pixel_x?`, `pixel_y?`, `coordinate?` | Moves cursor to position and returns a screenshot to verify cursor placement. Accepts normalized, raw pixels, or `[x, y]`. *(Guarded)* |
+| `click` | `button?`, `click_type?`, `double_click?`, `count?`, `delay_ms?` | Clicks at current cursor position (`"left"`, `"right"`, `"middle"`). Supports single, double, and triple clicks with configurable UI settle delay. Returns resulting screenshot. *(Guarded)* |
 | `type_text` | `text` | Injects Unicode characters into the currently focused text field character-by-character. *(Guarded)* |
 | `press_key` | `key` | Presses single keys (`enter`, `space`, `tab`, `b`, `a`, `[`, `]`, `\`) or combos (`ctrl+s`, `ctrl+b`, `alt+tab`). *(Guarded)* |
 | `wait` | `ms` | Waits specified milliseconds (for render completion, animations, or playback) and returns fresh screenshot. *(Guarded)* |
 | `screen_record` | `duration` | Records screen & system audio via FFmpeg for specified duration (seconds). Returns video path & end screenshot. *(Guarded)* |
-| `drag` | `x1`, `y1`, `x2`, `y2`, `modifiers?` | Smooth interpolated drag movement with optional modifiers (e.g. `["alt"]` for clip duplication). *(Guarded)* |
-| `scroll` | `x`, `y`, `direction`, `amount?` | Positions cursor at `(x, y)` and simulates vertical (`"up"`/`"down"`) or horizontal (`"left"`/`"right"`) wheel scrolling. *(Guarded)* |
+| `drag` | `x1`, `y1`, `x2`, `y2`, `button?`, `modifiers?` | Smooth interpolated drag movement. Supports `"left"` (default), `"middle"` (Blender Orbit/Pan), and `"right"` (Blender Lasso) buttons, plus modifiers (e.g. `["shift"]`, `["ctrl"]`, `["alt"]`). *(Guarded)* |
+| `scroll` | `direction`, `amount?`, `x?`, `y?` | Simulates vertical (`"up"`/`"down"`) or horizontal (`"left"`/`"right"`) wheel scrolling. When `x` and `y` are omitted, scrolls in-place at current cursor location. *(Guarded)* |
 | 🔒 `end_session` | `summary?` | Concludes active CUA session, releases held keys/buttons, terminates helper process, and locks all desktop interaction tools. |
 
 ---
 
-## 📐 Normalized Coordinate System
- 
-To prevent hallucination of raw pixel offsets across different monitor setups (1080p, 1440p, 4K) and DPI scale factors (100%, 125%, 150%, 200%), coordinates are normalized and support **both** standard formats:
- 
-- **Standard integer scale `[0, 1000]`**: `(0, 0)` is top-left, `(500, 500)` is center, `(1000, 1000)` is bottom-right.
-- **Unit float scale `[0.0, 1.0]`**: `(0.0, 0.0)` is top-left, `(0.5, 0.5)` is center, `(1.0, 1.0)` is bottom-right.
- 
-Any coordinate value $> 1.0$ and $\le 1000.0$ is automatically recognized and scaled down by $1000.0$.
- 
+## 📐 Universal Coordinate Resolver
+
+Designed to eliminate coordinate confusion across heterogeneous CUA vision models (Gemini, Claude 3.5/3.7, OpenAI Operator, Qwen-VL, UI-TARS), `pi-video-cua` accepts coordinates in **any** representation:
+
+1. **Normalized `[0, 1000]` Scale** (Gemini / UI-TARS native):
+   `{ x: 500, y: 500 }` represents screen center.
+2. **Normalized Unit Float `[0.0, 1.0]` Scale**:
+   `{ x: 0.5, y: 0.5 }` represents screen center.
+3. **Explicit Raw Screen Pixels** (OpenAI / Claude Computer-Use):
+   `{ pixel_x: 960, pixel_y: 540 }` directly targets exact screen pixels.
+4. **Anthropic Coordinate Tuple**:
+   `{ coordinate: [960, 540] }` or normalized `{ coordinate: [500, 500] }`.
+5. **Automatic Raw Pixel Detection**:
+   If an agent passes standard `{ x, y }` with values $> 1000$ (e.g. `{ x: 1440, y: 900 }` on a 1920x1080 display), the resolver detects raw pixel values and automatically normalizes them using the primary monitor's dimensions instead of throwing an out-of-bounds error.
+
 $$\text{Pixel } X = x_{\text{norm}} \times (\text{Width} - 1)$$
 $$\text{Pixel } Y = y_{\text{norm}} \times (\text{Height} - 1)$$
+
+---
+
+## 🎨 Blender 3D Operational Playbook
+
+`pi-video-cua` provides native primitives for Blender 3D viewport navigation and modal workflows:
+
+### 1. Viewport Orbit (Middle-Mouse Drag)
+```typescript
+// Click and drag with Middle Mouse Button to rotate 3D viewport
+await drag({
+  x1: 500,
+  y1: 500,
+  x2: 650,
+  y2: 450,
+  button: "middle"
+});
+```
+
+### 2. Viewport Pan (Shift + Middle-Mouse Drag)
+```typescript
+// Hold Shift while dragging MMB to pan 3D viewport
+await drag({
+  x1: 500,
+  y1: 500,
+  x2: 400,
+  y2: 500,
+  button: "middle",
+  modifiers: ["shift"]
+});
+```
+
+### 3. Dolly Zoom & In-Place Scrolling
+```typescript
+// Zoom in/out without moving the mouse pointer away from the active region
+await scroll({
+  direction: "up",
+  amount: 3
+});
+
+// Or smooth Dolly Zoom via Ctrl + MMB
+await drag({
+  x1: 500,
+  y1: 500,
+  x2: 500,
+  y2: 400,
+  button: "middle",
+  modifiers: ["ctrl"]
+});
+```
+
+### 4. Lasso Selection (Right-Mouse Drag)
+```typescript
+// Lasso select vertices, edges, faces, or objects with RMB drag
+await drag({
+  x1: 300,
+  y1: 300,
+  x2: 700,
+  y2: 700,
+  button: "right"
+});
+```
+
+### 5. Modal Transformations (Grab / Rotate / Scale)
+```typescript
+// 1. Move to object and select
+await move_mouse({ x: 500, y: 500 });
+await click({ button: "left" });
+
+// 2. Trigger Grab (G) and constrain to Z axis by 2 units
+await press_key({ key: "g" });
+await press_key({ key: "z" });
+await type_text({ text: "2" });
+await press_key({ key: "enter" });
+```
 
 ---
 
@@ -93,10 +174,8 @@ await drag({
 
 ### 4. Zooming the Timeline
 ```typescript
-// Position cursor over timeline ruler and scroll to zoom in
+// In-place scroll over timeline to zoom in
 await scroll({
-  x: 0.5,
-  y: 0.7,
   direction: "up",
   amount: 4
 });

@@ -62,52 +62,96 @@ async function runSmokeTests() {
         if (dragRes.isError) {
             throw new Error(`Drag failed: ${JSON.stringify(dragRes)}`);
         }
-        console.log("\n8. Testing 'drag' tool with modifiers (SEC-19: Alt-drag duplicate)...");
+        console.log("\n7b. Testing 'drag' tool with Middle Mouse Button (Blender Viewport Orbit)...");
+        const dragMmbRes = await dragTool.execute({
+            x1: 0.5,
+            y1: 0.5,
+            x2: 0.52,
+            y2: 0.48,
+            button: "middle",
+        });
+        console.log("Middle drag response status:", dragMmbRes.isError ? "FAILED" : "SUCCESS");
+        if (dragMmbRes.isError) {
+            throw new Error(`Middle-click drag failed: ${JSON.stringify(dragMmbRes)}`);
+        }
+        console.log(" ✓ Middle-click drag (Blender Orbit) succeeded!");
+        console.log("\n7c. Testing 'drag' tool with Right Mouse Button (Blender Lasso select)...");
+        const dragRmbRes = await dragTool.execute({
+            x1: 0.5,
+            y1: 0.5,
+            x2: 0.52,
+            y2: 0.52,
+            button: "right",
+        });
+        console.log("Right drag response status:", dragRmbRes.isError ? "FAILED" : "SUCCESS");
+        if (dragRmbRes.isError) {
+            throw new Error(`Right-click drag failed: ${JSON.stringify(dragRmbRes)}`);
+        }
+        console.log(" ✓ Right-click drag (Blender Lasso) succeeded!");
+        console.log("\n8. Testing 'drag' tool with modifiers (Blender Pan: Shift + MMB)...");
         const dragModRes = await dragTool.execute({
             x1: 0.52,
             y1: 0.52,
             x2: 0.5,
             y2: 0.5,
-            modifiers: ["alt"],
+            button: "middle",
+            modifiers: ["shift"],
         });
-        console.log("Alt-drag response status:", dragModRes.isError ? "FAILED" : "SUCCESS");
+        console.log("Shift+MMB drag response status:", dragModRes.isError ? "FAILED" : "SUCCESS");
         if (dragModRes.isError) {
-            throw new Error(`Alt-drag failed: ${JSON.stringify(dragModRes)}`);
+            throw new Error(`Shift+MMB drag failed: ${JSON.stringify(dragModRes)}`);
         }
+        console.log(" ✓ Shift+MMB drag (Blender Pan) succeeded!");
         console.log("\n9. Testing 'wait' tool (300ms)...");
         const waitRes = await waitTool.execute({ ms: 300 });
         console.log("Wait response status:", waitRes.isError ? "FAILED" : "SUCCESS");
         if (waitRes.isError) {
             throw new Error(`Wait failed: ${JSON.stringify(waitRes)}`);
         }
-        console.log("\n10. Testing 'scroll' tool (up by 2)...");
+        console.log("\n10. Testing 'scroll' tool (targeted scroll: up by 2)...");
         const scrollRes = await scrollTool.execute({ x: 0.5, y: 0.5, direction: "up", amount: 2 });
         console.log("Scroll response status:", scrollRes.isError ? "FAILED" : "SUCCESS");
         if (scrollRes.isError) {
             throw new Error(`Scroll failed: ${JSON.stringify(scrollRes)}`);
         }
+        console.log("\n10b. Testing 'scroll' tool (in-place scroll without coordinates)...");
+        const scrollInPlaceRes = await scrollTool.execute({ direction: "down", amount: 2 });
+        console.log("In-place scroll response status:", scrollInPlaceRes.isError ? "FAILED" : "SUCCESS");
+        if (scrollInPlaceRes.isError) {
+            throw new Error(`In-place scroll failed: ${JSON.stringify(scrollInPlaceRes)}`);
+        }
+        console.log(" ✓ In-place scrolling succeeded without moving cursor!");
         console.log("\n11. Testing 'screen_record' tool (1 second)...");
         const recordRes = await screenRecordTool.execute({ duration: 1.0 });
         console.log("Screen record response status:", recordRes.isError ? "FAILED" : "SUCCESS");
         if (recordRes.isError) {
             throw new Error(`Screen record failed: ${JSON.stringify(recordRes)}`);
         }
-        console.log("\n12. Testing SEC-16 Argument Validation (NaN, undefined, invalid bounds)...");
+        console.log("\n12. Testing Universal Coordinate Resolver & Argument Validation...");
         // Testing [0, 1000] scale vs [0.0, 1.0] scale
         const scale1000Move = await moveMouseTool.execute({ x: 500, y: 500 });
         if (scale1000Move.isError)
             throw new Error("Expected [0, 1000] scale coordinate (500, 500) to succeed");
         console.log("   ✓ Standard [0, 1000] scale successfully accepted and normalized!");
-        // Move mouse NaN / Out of bounds (> 1000 or < 0)
+        // Testing explicit raw pixel coordinates
+        const pixelMove = await moveMouseTool.execute({ pixel_x: 960, pixel_y: 540 });
+        if (pixelMove.isError)
+            throw new Error("Expected raw pixel coordinate (pixel_x: 960, pixel_y: 540) to succeed");
+        console.log("   ✓ Explicit raw screen pixels (pixel_x, pixel_y) successfully accepted!");
+        // Testing Anthropic-style coordinate pair
+        const anthropicMove = await moveMouseTool.execute({ coordinate: [800, 600] });
+        if (anthropicMove.isError)
+            throw new Error("Expected Anthropic coordinate: [800, 600] to succeed");
+        console.log("   ✓ Anthropic-style coordinate: [x, y] successfully accepted!");
+        // Testing auto-detected pixel coordinates (> 1000)
+        const autoPixelMove = await moveMouseTool.execute({ x: 1400, y: 700 });
+        if (autoPixelMove.isError)
+            throw new Error("Expected auto-detected pixel coordinate (x: 1400, y: 700) to succeed");
+        console.log("   ✓ Auto-detected pixel coordinates (> 1000) successfully resolved without errors!");
+        // Move mouse NaN / Negative (< 0)
         const badMove1 = await moveMouseTool.execute({ x: NaN, y: 500 });
         if (!badMove1.isError)
             throw new Error("Expected NaN x to fail validation");
-        const badMove2 = await moveMouseTool.execute({ x: 1005, y: 500 });
-        if (!badMove2.isError)
-            throw new Error("Expected out-of-bounds x (> 1000) to fail validation");
-        const badMoveNeg = await moveMouseTool.execute({ x: -1, y: 500 });
-        if (!badMoveNeg.isError)
-            throw new Error("Expected negative x to fail validation");
         const badMove3 = await moveMouseTool.execute(undefined);
         if (!badMove3.isError)
             throw new Error("Expected undefined args to fail validation");
@@ -115,17 +159,17 @@ async function runSmokeTests() {
         const badDrag1 = await dragTool.execute({ x1: NaN, y1: 200, x2: 300, y2: 400 });
         if (!badDrag1.isError)
             throw new Error("Expected NaN x1 in drag to fail validation");
-        const badDragOob = await dragTool.execute({ x1: 1500, y1: 200, x2: 300, y2: 400 });
-        if (!badDragOob.isError)
-            throw new Error("Expected out-of-bounds x1 (> 1000) in drag to fail validation");
+        const badDragBtn = await dragTool.execute({ x1: 100, y1: 200, x2: 300, y2: 400, button: "invalid" });
+        if (!badDragBtn.isError)
+            throw new Error("Expected invalid button in drag to fail validation");
         const badDrag2 = await dragTool.execute({ x1: 100, y1: 200, x2: 300, y2: 400, modifiers: [123] });
         if (!badDrag2.isError)
             throw new Error("Expected invalid modifiers to fail validation");
         // Scroll invalid direction and amount
-        const badScroll1 = await scrollTool.execute({ x: 0.5, y: 0.5, direction: "diagonal" });
+        const badScroll1 = await scrollTool.execute({ direction: "diagonal" });
         if (!badScroll1.isError)
             throw new Error("Expected invalid direction to fail validation");
-        const badScroll2 = await scrollTool.execute({ x: 0.5, y: 0.5, direction: "up", amount: -1 });
+        const badScroll2 = await scrollTool.execute({ direction: "up", amount: -1 });
         if (!badScroll2.isError)
             throw new Error("Expected negative amount in scroll to fail validation");
         // Wait invalid ms

@@ -1,28 +1,44 @@
 import { HelperClient } from "../helper-client.js";
 import { SessionManager } from "../session-manager.js";
-import { MoveMouseArgs, PiTool, normalizeCoordinate } from "../types.js";
+import { MoveMouseArgs, PiTool, resolvePoint } from "../types.js";
 
 export const moveMouseTool: PiTool<MoveMouseArgs> = {
   name: "move_mouse",
   description:
-    "[Requires active CUA session started via 'start_session'] Moves the mouse cursor to normalized (x, y) coordinates on the screen and returns a screenshot showing the cursor's new position for visual verification. Supports standard [0, 1000] integer scale (e.g. 500 is center) or [0.0, 1.0] unit scale (e.g. 0.5 is center).",
+    "[Requires active CUA session started via 'start_session'] Moves the mouse cursor to (x, y) coordinates on the screen and returns a screenshot showing the cursor's position for visual verification. Universally supports: (1) normalized [0, 1000] integer scale (e.g. 500 is center), (2) unit [0.0, 1.0] scale (e.g. 0.5 is center), (3) raw screen pixel coordinates (e.g. pixel_x: 960, pixel_y: 540 or auto-detected x > 1000), or (4) Anthropic-style coordinate: [x, y].",
   parameters: {
     type: "object",
     properties: {
       x: {
         type: "number",
-        description: "Normalized X coordinate (0 to 1000 standard scale or 0.0 to 1.0 unit scale)",
-        minimum: 0.0,
-        maximum: 1000.0,
+        description:
+          "X coordinate. Accepts normalized [0, 1000] scale, unit [0.0, 1.0] scale, or raw screen pixels [0, screen_width].",
       },
       y: {
         type: "number",
-        description: "Normalized Y coordinate (0 to 1000 standard scale or 0.0 to 1.0 unit scale)",
-        minimum: 0.0,
-        maximum: 1000.0,
+        description:
+          "Y coordinate. Accepts normalized [0, 1000] scale, unit [0.0, 1.0] scale, or raw screen pixels [0, screen_height].",
+      },
+      pixel_x: {
+        type: "number",
+        description: "Optional explicit raw screen pixel X coordinate (e.g. 0 to 1920).",
+      },
+      pixel_y: {
+        type: "number",
+        description: "Optional explicit raw screen pixel Y coordinate (e.g. 0 to 1080).",
+      },
+      coordinate: {
+        type: "array",
+        items: { type: "number" },
+        description: "Optional Anthropic-style [x, y] coordinate pair (pixels or normalized).",
+      },
+      coordinate_type: {
+        type: "string",
+        enum: ["pixel", "normalized_1000", "unit"],
+        description: "Optional explicit coordinate interpretation mode.",
       },
     },
-    required: ["x", "y"],
+    required: [],
   },
   execute: async (args: MoveMouseArgs) => {
     const client = HelperClient.getInstance();
@@ -37,31 +53,33 @@ export const moveMouseTool: PiTool<MoveMouseArgs> = {
 
     if (!args || typeof args !== "object") {
       return client.formatErrorResponse(
-        new Error("Invalid arguments: expected an object with x and y coordinates.")
+        new Error("Invalid arguments: expected an object with coordinates (e.g. { x, y } or { pixel_x, pixel_y }).")
       );
     }
 
-    const { x, y } = args;
-    if (typeof x !== "number" || isNaN(x) || !isFinite(x) || x < 0.0 || x > 1000.0) {
+    const lastDims = client.getLastDimensions();
+    const pt = resolvePoint(args, {
+      screenWidth: lastDims?.width,
+      screenHeight: lastDims?.height,
+    });
+
+    if (!pt) {
       return client.formatErrorResponse(
-        new Error(`Invalid 'x' coordinate: must be a finite number between 0 and 1000 (or 0.0 and 1.0). Received: ${x}`)
+        new Error(
+          `Invalid coordinates: provide 'x' and 'y' (0-1000, 0-1, or raw pixels), or 'pixel_x'/'pixel_y', or 'coordinate: [x, y]'. Received: ${JSON.stringify(
+            args
+          )}`
+        )
       );
     }
-
-    if (typeof y !== "number" || isNaN(y) || !isFinite(y) || y < 0.0 || y > 1000.0) {
-      return client.formatErrorResponse(
-        new Error(`Invalid 'y' coordinate: must be a finite number between 0 and 1000 (or 0.0 and 1.0). Received: ${y}`)
-      );
-    }
-
-    const normX = normalizeCoordinate(x);
-    const normY = normalizeCoordinate(y);
 
     try {
-      const res = await client.moveMouse({ x: normX, y: normY });
+      const res = await client.moveMouse(pt);
+      const px = Math.round(pt.x * (res.dimensions.width - 1));
+      const py = Math.round(pt.y * (res.dimensions.height - 1));
       return client.formatScreenshotResponse(
         res,
-        `Cursor moved to position (${normX.toFixed(4)}, ${normY.toFixed(4)}).`
+        `Cursor moved to normalized (${pt.x.toFixed(4)}, ${pt.y.toFixed(4)}) [Screen pixel: ${px}, ${py}].`
       );
     } catch (err) {
       return client.formatErrorResponse(err);

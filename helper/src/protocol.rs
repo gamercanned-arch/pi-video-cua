@@ -109,14 +109,18 @@ pub struct DragParams {
     pub y1: f64,
     pub x2: f64,
     pub y2: f64,
+    #[serde(default = "default_left")]
+    pub button: String,
     #[serde(default)]
     pub modifiers: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ScrollParams {
-    pub x: f64,
-    pub y: f64,
+    #[serde(default)]
+    pub x: Option<f64>,
+    #[serde(default)]
+    pub y: Option<f64>,
     pub direction: String,
     #[serde(default = "default_scroll_amount")]
     pub amount: i32,

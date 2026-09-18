@@ -1,1 +1,1 @@
-{"version":3,"file":"move-mouse.d.ts","sourceRoot":"","sources":["../../src/tools/move-mouse.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,aAAa,EAAE,MAAM,EAAuB,MAAM,aAAa,CAAC;AAEzE,eAAO,MAAM,aAAa,EAAE,MAAM,CAAC,aAAa,CAiE/C,CAAC"}
+{"version":3,"file":"move-mouse.d.ts","sourceRoot":"","sources":["../../src/tools/move-mouse.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,aAAa,EAAE,MAAM,EAAgB,MAAM,aAAa,CAAC;AAElE,eAAO,MAAM,aAAa,EAAE,MAAM,CAAC,aAAa,CAmF/C,CAAC"}

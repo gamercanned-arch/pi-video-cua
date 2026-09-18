@@ -24,9 +24,13 @@ export class HelperClient {
     pendingRequests = new Map();
     isStarting = false;
     startPromise = null;
+    lastDimensions;
     boundExitHandler = () => this.dispose();
     boundSigintHandler = () => this.dispose();
     boundSigtermHandler = () => this.dispose();
+    getLastDimensions() {
+        return this.lastDimensions;
+    }
     static getInstance() {
         if (!HelperClient.instance) {
             HelperClient.instance = new HelperClient();
@@ -228,6 +232,7 @@ export class HelperClient {
             y1: args.y1,
             x2: args.x2,
             y2: args.y2,
+            button: args.button || "left",
             modifiers: args.modifiers,
         });
     }
@@ -240,12 +245,13 @@ export class HelperClient {
         });
     }
     formatScreenshotResponse(result, message) {
+        this.lastDimensions = result.dimensions;
         const { width, height, physical_width, physical_height, dpi_scale } = result.dimensions;
         const textHeader = message ? `${message}\n` : "";
         const dpiStr = typeof dpi_scale === "number" && !isNaN(dpi_scale) && isFinite(dpi_scale)
             ? dpi_scale.toFixed(2)
             : "1.00";
-        const infoText = `${textHeader}Screen: ${width}x${height} (Physical: ${physical_width}x${physical_height}, DPI Scale: ${dpiStr})\nScreenshot saved to: ${result.image_path}`;
+        const infoText = `${textHeader}Screen: ${width}x${height} (Physical: ${physical_width}x${physical_height}, DPI Scale: ${dpiStr})\nCoordinates accept normalized [0, 1000] (e.g. 500), unit [0.0, 1.0] (e.g. 0.5), or raw screen pixels via pixel_x/pixel_y (e.g. ${Math.round(width / 2)}, ${Math.round(height / 2)}).\nScreenshot saved to: ${result.image_path}`;
         return {
             content: [
                 {

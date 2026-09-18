@@ -213,7 +213,14 @@ fn handle_request(req: JsonRpcRequest) -> String {
                 Err(e) => return invalid_params(id, &e.to_string()),
             };
 
-            if let Err(e) = drag(params.x1, params.y1, params.x2, params.y2, params.modifiers.as_deref()) {
+            if let Err(e) = drag(
+                params.x1,
+                params.y1,
+                params.x2,
+                params.y2,
+                Some(&params.button),
+                params.modifiers.as_deref(),
+            ) {
                 return error_with_screenshot(id, &e.to_string());
             }
 

@@ -1,4 +1,4 @@
-import { ClickArgs, DragArgs, MoveMouseArgs, PiToolResponse, PressKeyArgs, RecordResult, ScreenRecordArgs, ScreenshotArgs, ScreenshotResult, ScrollArgs, TypeTextArgs, WaitArgs } from "./types.js";
+import { ClickArgs, DragArgs, MoveMouseArgs, PiToolResponse, PressKeyArgs, RecordResult, ScreenDimensions, ScreenRecordArgs, ScreenshotArgs, ScreenshotResult, ScrollArgs, TypeTextArgs, WaitArgs } from "./types.js";
 export declare class HelperError extends Error {
     readonly code: number;
     readonly screenshot?: ScreenshotResult;
@@ -12,9 +12,11 @@ export declare class HelperClient {
     private pendingRequests;
     private isStarting;
     private startPromise;
+    private lastDimensions?;
     private boundExitHandler;
     private boundSigintHandler;
     private boundSigtermHandler;
+    getLastDimensions(): ScreenDimensions | undefined;
     static getInstance(): HelperClient;
     private constructor();
     private findHelperBinary;
@@ -28,7 +30,12 @@ export declare class HelperClient {
     pressKey(args: PressKeyArgs): Promise<ScreenshotResult>;
     wait(args: WaitArgs): Promise<ScreenshotResult>;
     screenRecord(args: ScreenRecordArgs): Promise<RecordResult>;
-    drag(args: DragArgs): Promise<ScreenshotResult>;
+    drag(args: DragArgs & {
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+    }): Promise<ScreenshotResult>;
     scroll(args: ScrollArgs): Promise<ScreenshotResult>;
     formatScreenshotResponse(result: ScreenshotResult, message?: string): PiToolResponse;
     formatRecordResponse(result: RecordResult, message?: string): PiToolResponse;

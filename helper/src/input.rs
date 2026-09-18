@@ -123,13 +123,48 @@ pub fn click(button: &str, count: u32, delay_ms: u64) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MouseButtonType {
+    Left,
+    Middle,
+    Right,
+}
+
+impl MouseButtonType {
+    pub fn parse(s: &str) -> Result<Self> {
+        match s.trim().to_lowercase().as_str() {
+            "left" => Ok(Self::Left),
+            "middle" => Ok(Self::Middle),
+            "right" => Ok(Self::Right),
+            other => Err(anyhow!("Invalid mouse button: '{}'. Expected 'left', 'middle', or 'right'", other)),
+        }
+    }
+
+    pub fn down_flag(&self) -> windows::Win32::UI::Input::KeyboardAndMouse::MOUSE_EVENT_FLAGS {
+        match self {
+            Self::Left => MOUSEEVENTF_LEFTDOWN,
+            Self::Middle => MOUSEEVENTF_MIDDLEDOWN,
+            Self::Right => MOUSEEVENTF_RIGHTDOWN,
+        }
+    }
+
+    pub fn up_flag(&self) -> windows::Win32::UI::Input::KeyboardAndMouse::MOUSE_EVENT_FLAGS {
+        match self {
+            Self::Left => MOUSEEVENTF_LEFTUP,
+            Self::Middle => MOUSEEVENTF_MIDDLEUP,
+            Self::Right => MOUSEEVENTF_RIGHTUP,
+        }
+    }
+}
+
 pub struct MouseUpGuard {
+    button: MouseButtonType,
     released: bool,
 }
 
 impl MouseUpGuard {
-    pub fn new() -> Self {
-        Self { released: false }
+    pub fn new(button: MouseButtonType) -> Self {
+        Self { button, released: false }
     }
 
     pub fn release(&mut self) {
@@ -143,7 +178,7 @@ impl MouseUpGuard {
                             dx: 0,
                             dy: 0,
                             mouseData: 0,
-                            dwFlags: MOUSEEVENTF_LEFTUP,
+                            dwFlags: self.button.up_flag(),
                             time: 0,
                             dwExtraInfo: 0,
                         },
@@ -203,7 +238,19 @@ pub fn parse_modifier_key(name: &str) -> Result<VIRTUAL_KEY> {
     }
 }
 
-pub fn drag(x1: f64, y1: f64, x2: f64, y2: f64, modifiers: Option<&[String]>) -> Result<()> {
+pub fn drag(
+    x1: f64,
+    y1: f64,
+    x2: f64,
+    y2: f64,
+    button: Option<&str>,
+    modifiers: Option<&[String]>,
+) -> Result<()> {
+    let btn = match button {
+        Some(b) => MouseButtonType::parse(b)?,
+        None => MouseButtonType::Left,
+    };
+
     // 1. Move to start position
     move_mouse(x1, y1)?;
     sleep(Duration::from_millis(40));
@@ -235,7 +282,7 @@ pub fn drag(x1: f64, y1: f64, x2: f64, y2: f64, modifiers: Option<&[String]>) ->
                     dx: 0,
                     dy: 0,
                     mouseData: 0,
-                    dwFlags: MOUSEEVENTF_LEFTDOWN,
+                    dwFlags: btn.down_flag(),
                     time: 0,
                     dwExtraInfo: 0,
                 },
@@ -243,7 +290,7 @@ pub fn drag(x1: f64, y1: f64, x2: f64, y2: f64, modifiers: Option<&[String]>) ->
         };
         SendInput(&[input_down], std::mem::size_of::<INPUT>() as i32);
     }
-    let mut mouse_guard = MouseUpGuard::new();
+    let mut mouse_guard = MouseUpGuard::new(btn);
     sleep(Duration::from_millis(40));
 
     // 4. Interpolate movement across 10 smooth steps with micro-delays
@@ -271,9 +318,11 @@ pub fn drag(x1: f64, y1: f64, x2: f64, y2: f64, modifiers: Option<&[String]>) ->
     Ok(())
 }
 
-pub fn scroll(x: f64, y: f64, direction: &str, amount: i32) -> Result<()> {
-    move_mouse(x, y)?;
-    sleep(Duration::from_millis(20));
+pub fn scroll(x: Option<f64>, y: Option<f64>, direction: &str, amount: i32) -> Result<()> {
+    if let (Some(target_x), Some(target_y)) = (x, y) {
+        move_mouse(target_x, target_y)?;
+        sleep(Duration::from_millis(20));
+    }
 
     let step_count = amount.abs().max(1);
     let delta = (WHEEL_DELTA as i32) * step_count;

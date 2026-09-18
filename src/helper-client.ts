@@ -10,6 +10,7 @@ import {
   PiToolResponse,
   PressKeyArgs,
   RecordResult,
+  ScreenDimensions,
   ScreenRecordArgs,
   ScreenshotArgs,
   ScreenshotResult,
@@ -48,10 +49,15 @@ export class HelperClient {
   private pendingRequests = new Map<number | string, PendingRequest>();
   private isStarting = false;
   private startPromise: Promise<void> | null = null;
+  private lastDimensions?: ScreenDimensions;
 
   private boundExitHandler = () => this.dispose();
   private boundSigintHandler = () => this.dispose();
   private boundSigtermHandler = () => this.dispose();
+
+  public getLastDimensions(): ScreenDimensions | undefined {
+    return this.lastDimensions;
+  }
 
   public static getInstance(): HelperClient {
     if (!HelperClient.instance) {
@@ -287,12 +293,13 @@ export class HelperClient {
     return this.callMethod<RecordResult>("screen_record", { duration: args.duration }, timeout);
   }
 
-  public async drag(args: DragArgs): Promise<ScreenshotResult> {
+  public async drag(args: DragArgs & { x1: number; y1: number; x2: number; y2: number }): Promise<ScreenshotResult> {
     return this.callMethod<ScreenshotResult>("drag", {
       x1: args.x1,
       y1: args.y1,
       x2: args.x2,
       y2: args.y2,
+      button: args.button || "left",
       modifiers: args.modifiers,
     });
   }
@@ -307,12 +314,13 @@ export class HelperClient {
   }
 
   public formatScreenshotResponse(result: ScreenshotResult, message?: string): PiToolResponse {
+    this.lastDimensions = result.dimensions;
     const { width, height, physical_width, physical_height, dpi_scale } = result.dimensions;
     const textHeader = message ? `${message}\n` : "";
     const dpiStr = typeof dpi_scale === "number" && !isNaN(dpi_scale) && isFinite(dpi_scale)
       ? dpi_scale.toFixed(2)
       : "1.00";
-    const infoText = `${textHeader}Screen: ${width}x${height} (Physical: ${physical_width}x${physical_height}, DPI Scale: ${dpiStr})\nScreenshot saved to: ${result.image_path}`;
+    const infoText = `${textHeader}Screen: ${width}x${height} (Physical: ${physical_width}x${physical_height}, DPI Scale: ${dpiStr})\nCoordinates accept normalized [0, 1000] (e.g. 500), unit [0.0, 1.0] (e.g. 0.5), or raw screen pixels via pixel_x/pixel_y (e.g. ${Math.round(width / 2)}, ${Math.round(height / 2)}).\nScreenshot saved to: ${result.image_path}`;
 
     return {
       content: [

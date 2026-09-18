@@ -1,45 +1,73 @@
 import { HelperClient } from "../helper-client.js";
 import { SessionManager } from "../session-manager.js";
-import { normalizeCoordinate } from "../types.js";
+import { resolvePoint } from "../types.js";
 export const dragTool = {
     name: "drag",
-    description: "[Requires active CUA session started via 'start_session'] Performs a smooth mouse drag operation from (x1, y1) to (x2, y2) with optional modifier keys (e.g. ['alt'], ['shift']). Supports standard [0, 1000] integer scale or [0.0, 1.0] unit scale. Presses modifiers and left button at start, interpolates smooth movement, releases at end, and returns a screenshot.",
+    description: "[Requires active CUA session started via 'start_session'] Performs a smooth mouse drag operation from start (x1, y1) to end (x2, y2). Supports: (1) button selection: 'left' (default), 'middle' (essential for Blender Viewport Orbit & Pan), or 'right' (Blender Lasso select); (2) optional modifier keys (e.g. ['shift'] for Blender Pan, ['alt'] for Resolve duplication); (3) universal coordinates: normalized [0, 1000] scale, unit [0.0, 1.0] scale, or raw screen pixels.",
     parameters: {
         type: "object",
         properties: {
             x1: {
                 type: "number",
-                description: "Starting X coordinate (0 to 1000 standard scale or 0.0 to 1.0 unit scale)",
-                minimum: 0.0,
-                maximum: 1000.0,
+                description: "Starting X coordinate (normalized [0, 1000], unit [0.0, 1.0], or screen pixel).",
             },
             y1: {
                 type: "number",
-                description: "Starting Y coordinate (0 to 1000 standard scale or 0.0 to 1.0 unit scale)",
-                minimum: 0.0,
-                maximum: 1000.0,
+                description: "Starting Y coordinate (normalized [0, 1000], unit [0.0, 1.0], or screen pixel).",
             },
             x2: {
                 type: "number",
-                description: "Ending X coordinate (0 to 1000 standard scale or 0.0 to 1.0 unit scale)",
-                minimum: 0.0,
-                maximum: 1000.0,
+                description: "Ending X coordinate (normalized [0, 1000], unit [0.0, 1.0], or screen pixel).",
             },
             y2: {
                 type: "number",
-                description: "Ending Y coordinate (0 to 1000 standard scale or 0.0 to 1.0 unit scale)",
-                minimum: 0.0,
-                maximum: 1000.0,
+                description: "Ending Y coordinate (normalized [0, 1000], unit [0.0, 1.0], or screen pixel).",
+            },
+            pixel_x1: {
+                type: "number",
+                description: "Optional explicit raw pixel start X (e.g. 0 to 1920).",
+            },
+            pixel_y1: {
+                type: "number",
+                description: "Optional explicit raw pixel start Y (e.g. 0 to 1080).",
+            },
+            pixel_x2: {
+                type: "number",
+                description: "Optional explicit raw pixel end X (e.g. 0 to 1920).",
+            },
+            pixel_y2: {
+                type: "number",
+                description: "Optional explicit raw pixel end Y (e.g. 0 to 1080).",
+            },
+            start_coordinate: {
+                type: "array",
+                items: { type: "number" },
+                description: "Optional Anthropic-style start coordinate pair [x, y].",
+            },
+            end_coordinate: {
+                type: "array",
+                items: { type: "number" },
+                description: "Optional Anthropic-style end coordinate pair [x, y].",
+            },
+            button: {
+                type: "string",
+                enum: ["left", "middle", "right"],
+                description: "Mouse button to hold during drag: 'left' (default), 'middle' (Blender Orbit/Pan), or 'right' (Blender Lasso select).",
             },
             modifiers: {
                 type: "array",
                 items: {
                     type: "string",
                 },
-                description: "Optional keyboard modifier keys to hold down during the drag (e.g. ['alt'], ['shift'], ['ctrl']). Useful for Alt-drag duplicating clips or constraint dragging.",
+                description: "Optional keyboard modifier keys to hold during drag (e.g. ['shift'] for Pan, ['ctrl'] for Zoom, ['alt'] for duplicate).",
+            },
+            coordinate_type: {
+                type: "string",
+                enum: ["pixel", "normalized_1000", "unit"],
+                description: "Optional explicit coordinate interpretation mode.",
             },
         },
-        required: ["x1", "y1", "x2", "y2"],
+        required: [],
     },
     execute: async (args) => {
         const client = HelperClient.getInstance();
@@ -47,39 +75,56 @@ export const dragTool = {
             return client.formatErrorResponse(new Error("CUA session is not active. For safety, desktop control tools are locked. Call 'start_session' first to begin a desktop session."));
         }
         if (!args || typeof args !== "object") {
-            return client.formatErrorResponse(new Error("Invalid arguments: expected an object with x1, y1, x2, y2 coordinates."));
+            return client.formatErrorResponse(new Error("Invalid arguments: expected an object with start and end coordinates."));
         }
-        const { x1, y1, x2, y2, modifiers } = args;
-        for (const [name, val] of [
-            ["x1", x1],
-            ["y1", y1],
-            ["x2", x2],
-            ["y2", y2],
-        ]) {
-            if (typeof val !== "number" || isNaN(val) || !isFinite(val) || val < 0.0 || val > 1000.0) {
-                return client.formatErrorResponse(new Error(`Invalid '${name}' coordinate: must be a finite number between 0 and 1000 (or 0.0 and 1.0). Received: ${val}`));
-            }
+        const lastDims = client.getLastDimensions();
+        const start = resolvePoint({
+            x: args.x1,
+            y: args.y1,
+            pixel_x: args.pixel_x1,
+            pixel_y: args.pixel_y1,
+            coordinate: args.start_coordinate,
+            coordinate_type: args.coordinate_type,
+        }, {
+            screenWidth: lastDims?.width,
+            screenHeight: lastDims?.height,
+        });
+        const end = resolvePoint({
+            x: args.x2,
+            y: args.y2,
+            pixel_x: args.pixel_x2,
+            pixel_y: args.pixel_y2,
+            coordinate: args.end_coordinate,
+            coordinate_type: args.coordinate_type,
+        }, {
+            screenWidth: lastDims?.width,
+            screenHeight: lastDims?.height,
+        });
+        if (!start || !end) {
+            return client.formatErrorResponse(new Error(`Invalid drag coordinates: provide start (x1, y1) and end (x2, y2), or pixel coordinates, or start_coordinate/end_coordinate. Received: ${JSON.stringify(args)}`));
         }
+        const button = args.button || "left";
+        if (!["left", "middle", "right"].includes(button)) {
+            return client.formatErrorResponse(new Error(`Invalid 'button' parameter: expected 'left', 'middle', or 'right'. Received: '${button}'`));
+        }
+        const { modifiers } = args;
         if (modifiers !== undefined) {
             if (!Array.isArray(modifiers) ||
                 !modifiers.every((m) => typeof m === "string" && m.trim().length > 0)) {
                 return client.formatErrorResponse(new Error("Invalid 'modifiers' argument: must be an array of non-empty strings (e.g. ['alt'], ['shift'])."));
             }
         }
-        const normX1 = normalizeCoordinate(x1);
-        const normY1 = normalizeCoordinate(y1);
-        const normX2 = normalizeCoordinate(x2);
-        const normY2 = normalizeCoordinate(y2);
         try {
             const res = await client.drag({
-                x1: normX1,
-                y1: normY1,
-                x2: normX2,
-                y2: normY2,
+                x1: start.x,
+                y1: start.y,
+                x2: end.x,
+                y2: end.y,
+                button,
                 modifiers,
             });
             const modStr = modifiers && modifiers.length > 0 ? ` with [${modifiers.join("+")}]` : "";
-            return client.formatScreenshotResponse(res, `Dragged mouse${modStr} from (${normX1.toFixed(4)}, ${normY1.toFixed(4)}) to (${normX2.toFixed(4)}, ${normY2.toFixed(4)}).`);
+            return client.formatScreenshotResponse(res, `Dragged mouse (${button} button)${modStr} from (${start.x.toFixed(4)}, ${start.y.toFixed(4)}) to (${end.x.toFixed(4)}, ${end.y.toFixed(4)}).`);
         }
         catch (err) {
             return client.formatErrorResponse(err);
